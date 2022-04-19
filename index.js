@@ -15,7 +15,13 @@ app.get("/proxy", async (req, res) => {
     });
     return;
   }
-  const response = await axios.get(url);
+  const response = await axios.get(url).catch((err) => {
+    res.status(500).json({
+      message: "Error requesting url",
+      error: err,
+    });
+    return;
+  });
 
   res.status(200).json({
     data: response.data,
