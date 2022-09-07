@@ -1,48 +1,56 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-// const httpProxy = require("http-proxy");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// const options = {
-//   "myntra.com": "https://myntra.com",
-// };
-
-// const proxy = httpProxy.createProxy();
-
-// const server = require("http").createServer(function (req, res) {
-//   proxy.web(req, res, {
-//     target: options[req.headers.host],
-//   });
-// });
-
-// app.get("/myntra", async (req, res) => {
-//   const response = await axios.get("https://myntra.com");
-//   const text = response.data;
-
-//   res.status(200).json({
-//     text,
-//   });
-// });
-
-app.get("/proxy", async (req, res) => {
-  const url = req.query.url;
-  if (!url) {
-    res.status(422).json({
-      message: "Url needed",
+app.post("/request", async (req, res) => {
+  const body = req.body;
+  if (!body.type) {
+    res.status(400).json({
+      success: false,
+      message: "type not available",
     });
     return;
   }
-  const response = await axios.get(url);
-  const text = response.data;
+  if (!body.url) {
+    res.status(400).json({
+      success: false,
+      message: "url not available",
+    });
+    return;
+  }
+  const isGetReq = body.type.toLowerCase() == "get" ? true : false;
+  const headers = body.headers || {};
+  const url = body.url;
+  const mainBody = body.body || {};
 
-  res.status(200).json({
-    text,
-  });
+  let response, data;
+  const config = {
+    headers,
+  };
+  try {
+    if (isGetReq)
+      response = await axios.get(url, config).catch((err) => void err);
+    else
+      response = await axios
+        .post(url, mainBody, config)
+        .catch((err) => void err);
+    data = response.data;
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Error making req",
+      error: err,
+      errorString: err + "",
+    });
+    return;
+  }
+
+  res.status(200).json({ success: true, data });
 });
 
 app.listen(process.env.PORT || 5000, () => {
